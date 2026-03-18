@@ -67,7 +67,7 @@ Wrangler is pretty smart so it will automatically bind your services for local d
 Before deploying (or the first time you set up the project), you must create the `PAYLOAD_SECRET` Worker secret. This value is used to sign Payload JWTs and **must never be stored in `wrangler.jsonc`** or any other committed file.
 
 ```bash
-pnpm wrangler secret put PAYLOAD_SECRET
+pnpm wrangler secret put PAYLOAD_SECRET --env=$CLOUDFLARE_ENV
 # paste a strong random string, e.g. from: openssl rand -base64 32
 ```
 
