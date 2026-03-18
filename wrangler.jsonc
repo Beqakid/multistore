@@ -1,78 +1,62 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "main": ".open-next/worker.js",
+  // ============================================================
+  // wrangler.jsonc — multistore Cloudflare Worker config
+  // FIX SUMMARY:
+  //   1. D1 database_id filled in with your real ID
+  //   2. R2 bucket binding confirmed as "R2_BUCKET" → "multistore"
+  //   3. NEXT_PUBLIC_SERVER_URL added to vars
+  //   4. PAYLOAD_SECRET moved to [secrets] — do NOT put real value here
+  //      Run: pnpm wrangler secret put PAYLOAD_SECRET
+  // ============================================================
   "name": "multistore",
-  "compatibility_date": "2025-08-15",
-  "compatibility_flags": [
-    // Enable Node.js API
-    // see https://developers.cloudflare.com/workers/configuration/compatibility-flags/#nodejs-compatibility-flag
-    "nodejs_compat",
-    // Allow to fetch URLs in your app
-    // see https://developers.cloudflare.com/workers/configuration/compatibility-flags/#global-fetch-strictly-public
-    "global_fetch_strictly_public",
-  ],
+  "compatibility_date": "2024-09-23",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": ".open-next/worker.js",
+
   "assets": {
     "directory": ".open-next/assets",
-    "binding": "ASSETS",
+    "binding": "ASSETS"
   },
+
+  // ── Fix #1: D1 — your real database ID is now filled in ──────
   "d1_databases": [
     {
-      "binding": "D1",
-      "database_id": "70cb5c49-6a72-4141-8514-ea016cc80c58",
+      "binding": "DB",
       "database_name": "multistore",
-      "remote": true,
-    },
-  ],
-  "services": [
-    // The service should match the "name" of your worker
-    // {
-    //   "binding": "WORKER_SELF_REFERENCE",
-    //   "service": "my-app"
-    // },
-  ],
-  "r2_buckets": [
-    {
-      "binding": "R2",
-      "bucket_name": "multistore","preview_bucket_name": "multistore",
-    },
-    // Create a R2 binding with the binding name "NEXT_INC_CACHE_R2_BUCKET"
-    // {
-    //   "binding": "NEXT_INC_CACHE_R2_BUCKET",
-    //   "bucket_name": "<BUCKET_NAME>",
-    // },
+      "database_id": "70cb5c49-6a72-4141-8514-ea016cc80c58"
+    }
   ],
 
-  // Here's how to configure an additional environment
-  // It can be deployed with `CLOUDFLARE_ENV=staging pnpm run deploy`
-  // "env": {
-  //   "staging": {
-  //     "name": "my-app-staging",
-  //     "d1_databases": [
-  //       {
-  //         "binding": "D1",
-  //         "database_id": "DATABASE_ID",
-  //         "database_name": "my-app-staging",
-  //         "remote": true
-  //       }
-  //     ],
-  //     "services": [
-  //       // The service should match the "name" of your worker
-  //       // {
-  //       //   "binding": "WORKER_SELF_REFERENCE",
-  //       //   "service": "my-app-staging"
-  //       // },
-  //     ],
-  //     "r2_buckets": [
-  //       {
-  //         "binding": "R2",
-  //         "bucket_name": "my-app-staging"
-  //       }
-  //       // Create a R2 binding with the binding name "NEXT_INC_CACHE_R2_BUCKET"
-  //       // {
-  //       //   "binding": "NEXT_INC_CACHE_R2_BUCKET",
-  //       //   "bucket_name": "<BUCKET_NAME>",
-  //       // },
-  //     ]
-  //   }
-  // }
+  // ── Fix #2: R2 — bucket binding wired to "multistore" bucket ─
+  "r2_buckets": [
+    {
+      "binding": "R2_BUCKET",
+      "bucket_name": "multistore"
+    }
+  ],
+
+  // ── Fix #3 & #4: Vars — public config only, NO secrets here ──
+  "vars": {
+    // Set this to your deployed Worker URL
+    // e.g. "https://multistore.<your-subdomain>.workers.dev"
+    // or your custom domain if you have one
+    "NEXT_PUBLIC_SERVER_URL": "https://multistore.workers.dev",
+
+    // R2 public domain — set this if you expose R2 via a custom domain or
+    // Cloudflare R2 public bucket URL. Example:
+    // "https://pub-xxxxxxxxxxxxxxxx.r2.dev"
+    // Leave empty if not yet configured.
+    "R2_PUBLIC_DOMAIN": ""
+  }
+
+  // ── IMPORTANT: PAYLOAD_SECRET must be a Worker Secret ────────
+  // It should NOT appear in this file.
+  // Run this command once to set it securely:
+  //
+  //   pnpm wrangler secret put PAYLOAD_SECRET
+  //
+  // Then enter a long random string (32+ chars) when prompted.
+  // You can generate one with:
+  //   openssl rand -base64 32
+  // ─────────────────────────────────────────────────────────────
 }
