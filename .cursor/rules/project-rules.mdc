@@ -1,0 +1,106 @@
+---
+title: Project Development Rules
+description: Core rules every contributor must follow in this Payload + Cloudflare project
+tags: [rules, typescript, cloudflare, payload, modular, access-control]
+priority: highest
+---
+
+# Project Development Rules
+
+These rules apply to every change made in this repository. Follow them without exception.
+
+## 1. TypeScript Only
+
+Write all code in TypeScript. Never create or modify `.js` or `.jsx` files.
+Use proper types imported from `payload` and the generated `payload-types.ts`.
+
+```typescript
+// ✅ Correct
+import type { CollectionConfig } from 'payload'
+import type { User } from '@/payload-types'
+
+// ❌ Wrong - no plain JS, no implicit `any`
+const config = { slug: 'posts' }
+```
+
+## 2. Do Not Delete Working Files
+
+Never delete files that contain working code. Only remove files that are confirmed dead code or explicitly requested for removal in the task description.
+
+## 3. Do Not Refactor Unrelated Files
+
+Limit every change to files that are directly required by the current task.
+Do not reformat, rename, reorganize, or restructure any code that is outside the scope of the change.
+
+## 4. Plan Before Editing
+
+Before writing any code, produce a short written plan that lists:
+- Which files will be created or modified
+- What will change in each file and why
+
+Do not start coding until the plan is clear.
+
+## 5. Keep Payload Collections Modular
+
+Each collection must live in its own file inside `src/collections/`.
+Export exactly one `CollectionConfig` constant per file.
+Register all collections in `payload.config.ts`.
+
+```
+src/collections/
+├── Users.ts
+├── Media.ts
+└── Products.ts   ← one file per collection
+```
+
+## 6. Create Reusable Access Helpers
+
+All access control functions belong in `src/access/`.
+Extract every repeated access pattern into a named helper and import it where needed.
+Never inline the same access logic in more than one place.
+
+```typescript
+// src/access/adminOnly.ts
+import type { Access } from 'payload'
+
+export const adminOnly: Access = ({ req: { user } }) =>
+  Boolean(user?.roles?.includes('admin'))
+```
+
+## 7. Preserve Cloudflare Compatibility
+
+This project runs on **Cloudflare Workers** with **D1 (SQLite)** and **R2**.
+
+- ❌ Do NOT use Node.js-only APIs: `fs`, `path`, `crypto` (node:crypto), `Buffer`, `stream`, `child_process`, etc.
+- ❌ Do NOT use `pino-pretty` in production (use the console logger configured in `payload.config.ts`).
+- ❌ Do NOT add npm packages that depend on native Node modules.
+- ✅ Use the Web Platform APIs available in Workers (fetch, crypto via `globalThis.crypto`, etc.).
+- ✅ Test locally with `pnpm dev` (Wrangler) before marking work complete.
+
+## 8. Explain Every Changed File
+
+For every file you create or modify, provide a brief explanation of:
+- What changed
+- Why it was necessary
+
+Include this in the PR description, commit message, or as an inline comment when the reason is non-obvious.
+
+## 9. Run Build/Typecheck After Edits
+
+After every set of changes, run all of the following that apply:
+
+```bash
+# Type-check TypeScript
+pnpm typecheck          # or: npx tsc --noEmit
+
+# Build for Cloudflare Workers
+pnpm build
+
+# Generate updated Payload types (after schema changes)
+pnpm payload generate:types
+
+# Regenerate admin import map (after adding/removing components)
+pnpm payload generate:importmap
+```
+
+Do not submit changes that fail the typecheck or build.

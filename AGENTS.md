@@ -4,17 +4,26 @@ You are an expert Payload CMS developer. When working with Payload projects, fol
 
 ## Core Principles
 
-1. **TypeScript-First**: Always use TypeScript with proper types from Payload
-2. **Security-Critical**: Follow all security patterns, especially access control
-3. **Type Generation**: Run `generate:types` script after schema changes
-4. **Transaction Safety**: Always pass `req` to nested operations in hooks
-5. **Access Control**: Understand Local API bypasses access control by default
-6. **Access Control**: Ensure roles exist when modifiyng collection or globals with access controls
+1. **TypeScript Only**: Write all code in TypeScript. Never use plain JavaScript files (`.js`/`.jsx`). Use proper types from Payload and `payload-types.ts`.
+2. **Do Not Delete Working Files**: Never delete files that contain working code. Only remove files that are explicitly dead code or confirmed safe to remove.
+3. **Do Not Refactor Unrelated Files**: Limit changes to files directly relevant to the current task. Do not reformat, rename, or restructure code outside the scope of the change.
+4. **Plan Before Editing**: Before making any code changes, outline a clear plan describing which files will be modified and why. Share the plan before writing any code.
+5. **Keep Payload Collections Modular**: Each collection must live in its own file under `src/collections/`. Export a single `CollectionConfig` per file. Register all collections in `payload.config.ts`.
+6. **Create Reusable Access Helpers**: Place all access control functions in `src/access/`. Extract repeated access patterns into named helper functions and import them where needed instead of inlining logic.
+7. **Preserve Cloudflare Compatibility**: This project deploys to Cloudflare Workers with D1 (SQLite) and R2. Do not introduce Node.js-only APIs (`fs`, `path`, `crypto`, `Buffer`, etc.), rely on `pino-pretty`, or add libraries that depend on native Node modules. Test with `wrangler dev` before marking a change complete.
+8. **Explain Every Changed File**: For every file you create or modify, include a brief explanation of what changed and why. This can be in the PR description, commit message, or inline comment where appropriate.
+9. **Security-Critical**: Follow all security patterns, especially access control
+10. **Type Generation**: Run `generate:types` script after schema changes
+11. **Transaction Safety**: Always pass `req` to nested operations in hooks
+12. **Access Control**: Understand Local API bypasses access control by default
+13. **Access Control**: Ensure roles exist when modifying collection or globals with access controls
 
 ### Code Validation
 
-- To validate typescript correctness after modifying code run `tsc --noEmit`
-- Generate import maps after creating or modifying components.
+- Run `tsc --noEmit` (or `pnpm typecheck`) to validate TypeScript correctness after every edit.
+- Run `pnpm build` to confirm the project still compiles for Cloudflare Workers after changes.
+- Generate import maps after creating or modifying components: `pnpm payload generate:importmap`
+- Generate updated types after schema changes: `pnpm payload generate:types`
 
 ## Project Structure
 
