@@ -41,26 +41,6 @@ const serverURL =
   process.env.NEXT_PUBLIC_SERVER_URL ||
   'https://multistore.workers.dev'
 
-// ── Cloudflare-compatible logger ──────────────────────────────
-// Payload's default pino-pretty logger uses Node.js fs APIs not
-// available in Workers. This routes logs through console.* instead.
-const isProduction = process.env.NODE_ENV === 'production'
-
-const cloudflareLogger = {
-  error: (msg: string | object, ...args: unknown[]) =>
-    console.error(JSON.stringify({ level: 'error', msg, ...args })),
-  warn: (msg: string | object, ...args: unknown[]) =>
-    console.warn(JSON.stringify({ level: 'warn', msg, ...args })),
-  info: (msg: string | object, ...args: unknown[]) =>
-    console.log(JSON.stringify({ level: 'info', msg, ...args })),
-  debug: (msg: string | object, ...args: unknown[]) =>
-    console.debug(JSON.stringify({ level: 'debug', msg, ...args })),
-  fatal: (msg: string | object, ...args: unknown[]) =>
-    console.error(JSON.stringify({ level: 'fatal', msg, ...args })),
-  child: () => cloudflareLogger,
-  silent: () => {},
-}
-
 export default buildConfig({
   // ── Fix #4: serverURL ───────────────────────────────────────
   serverURL,
@@ -88,7 +68,7 @@ export default buildConfig({
 
   // ── D1 database adapter ───────────────────────────────────────
   db: sqliteD1Adapter({
-    database: cloudflare.env.DB as D1Database,
+    binding: cloudflare.env.DB,
     migrationDir: path.resolve(dirname, 'migrations'),
   }),
 
@@ -100,14 +80,7 @@ export default buildConfig({
       collections: {
         media: true,
       },
-      bucket: cloudflare.env.R2_BUCKET as R2Bucket,
-      // Optional: set a public base URL for serving uploaded files.
-      // This should be your R2 public bucket domain or custom domain.
-      // Set R2_PUBLIC_DOMAIN in wrangler.jsonc vars.
-      acl: undefined, // R2 doesn't use ACLs — access is controlled by Cloudflare
+      bucket: cloudflare.env.R2_BUCKET,
     }),
   ],
-
-  // ── Cloudflare-compatible logger ──────────────────────────────
-  logger: isProduction ? cloudflareLogger : undefined,
 })
