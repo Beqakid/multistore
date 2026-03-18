@@ -62,6 +62,17 @@ This will take you to Cloudflare to login and then you can use the Wrangler CLI 
 
 Wrangler is pretty smart so it will automatically bind your services for local development just by running `pnpm dev`.
 
+## Secrets
+
+Before deploying (or the first time you set up the project), you must create the `PAYLOAD_SECRET` Worker secret. This value is used to sign Payload JWTs and **must never be stored in `wrangler.jsonc`** or any other committed file.
+
+```bash
+pnpm wrangler secret put PAYLOAD_SECRET
+# paste a strong random string, e.g. from: openssl rand -base64 32
+```
+
+You will be prompted to enter the value. The secret is stored encrypted in Cloudflare and is automatically injected into your Worker at runtime as `process.env.PAYLOAD_SECRET`.
+
 ## Deployments
 
 When you're ready to deploy, first make sure you have created your migrations:
