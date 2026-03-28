@@ -1,10 +1,7 @@
 // src/payload.config.ts
 // ============================================================
-// FIX SUMMARY:
-//   Fix #2: r2Storage plugin added — wires R2_BUCKET to media uploads
-//   Fix #3: PAYLOAD_SECRET read from process.env (set via wrangler secret)
-//   Fix #4: serverURL read from NEXT_PUBLIC_SERVER_URL env var
-//   Bonus: Cloudflare-compatible logger kept (no pino-pretty in Workers)
+// Viliniu Multi-Merchant Marketplace
+// Phase 1: Core collections — Users, Vendors, Products, Orders
 // ============================================================
 
 import { sqliteD1Adapter } from '@payloadcms/db-d1-sqlite'
@@ -17,15 +14,15 @@ import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
 
 import { Media } from './collections/Media'
+import { Orders } from './collections/Orders'
+import { Products } from './collections/Products'
 import { Users } from './collections/Users'
+import { Vendors } from './collections/Vendors'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
 // ── Smart Cloudflare context detection ───────────────────────
-// During `payload migrate:create` or `payload generate:*`, we use
-// Wrangler's getPlatformProxy() to get D1 bindings locally.
-// At runtime (in the actual Worker), we use getCloudflareContext().
 const isMigrateOrGenerate = process.argv.find((value) =>
   value.match(/^(generate|migrate):?/),
 )
@@ -34,16 +31,12 @@ const cloudflare = isMigrateOrGenerate
   ? await getPlatformProxy<CloudflareEnv>()
   : await getCloudflareContext({ async: true })
 
-// ── Fix #4: serverURL ─────────────────────────────────────────
-// Set NEXT_PUBLIC_SERVER_URL in wrangler.jsonc vars to your deployed URL.
-// Example: "https://multistore.<your-subdomain>.workers.dev"
+// ── serverURL ─────────────────────────────────────────────────
 const serverURL =
   process.env.NEXT_PUBLIC_SERVER_URL ||
   'https://multistore.workers.dev'
 
 // ── Cloudflare-compatible logger ──────────────────────────────
-// Payload's default pino-pretty logger uses Node.js fs APIs not
-// available in Workers. This routes logs through console.* instead.
 const isProduction = process.env.NODE_ENV === 'production'
 
 const cloudflareLogger = {
@@ -62,7 +55,6 @@ const cloudflareLogger = {
 }
 
 export default buildConfig({
-  // ── Fix #4: serverURL ───────────────────────────────────────
   serverURL,
 
   admin: {
@@ -70,41 +62,42 @@ export default buildConfig({
     importMap: {
       baseDir: path.resolve(dirname),
     },
+    meta: {
+      titleSuffix: '— Viliniu Admin',
+    },
   },
 
-  collections: [Users, Media],
+  // ── All Collections ──────────────────────────────────────────
+  collections: [
+    Users,
+    Vendors,
+    Products,
+    Orders,
+    Media,
+  ],
 
   editor: lexicalEditor(),
 
-  // ── Fix #3: PAYLOAD_SECRET ───────────────────────────────────
-  // This is read from the Worker Secret you set via:
-  //   pnpm wrangler secret put PAYLOAD_SECRET
-  // It will be available as process.env.PAYLOAD_SECRET at runtime.
   secret: process.env.PAYLOAD_SECRET || '',
 
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
 
-  // ── D1 database adapter ───────────────────────────────────────
+  // ── D1 SQLite database adapter ────────────────────────────────
   db: sqliteD1Adapter({
     database: cloudflare.env.DB as D1Database,
     migrationDir: path.resolve(dirname, 'migrations'),
   }),
 
-  // ── Fix #2: R2 storage plugin ─────────────────────────────────
-  // Wires the "multistore" R2 bucket to the Media collection.
-  // Files will be stored in R2 and served from R2_PUBLIC_DOMAIN.
+  // ── R2 storage plugin ─────────────────────────────────────────
   plugins: [
     r2Storage({
       collections: {
         media: true,
       },
       bucket: cloudflare.env.R2_BUCKET as R2Bucket,
-      // Optional: set a public base URL for serving uploaded files.
-      // This should be your R2 public bucket domain or custom domain.
-      // Set R2_PUBLIC_DOMAIN in wrangler.jsonc vars.
-      acl: undefined, // R2 doesn't use ACLs — access is controlled by Cloudflare
+      acl: undefined,
     }),
   ],
 
